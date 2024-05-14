@@ -1,9 +1,5 @@
-# --------------------------------------------------------
-# Swin Transformer
-# Copyright (c) 2021 Microsoft
-# Licensed under The MIT License [see LICENSE for details]
-# Written by Ze Liu
-# --------------------------------------------------------
+#  Copyright (c) 2021-2024. IPCRC, Lab. Jiangnig Wei
+#  All rights reserved
 
 import torch
 import torch.nn as nn
@@ -52,7 +48,7 @@ def window_partition(x, window_size):
         windows: (num_windows*B, window_size, window_size, C)
     """
     B, H, W, C = x.shape
-    x = x.view(B, H // window_size, window_size, W // window_size, window_size, C)
+    x = x.view(B, H // window_size, window_size, W // window_size, window_size, C)  #
     windows = x.permute(0, 1, 3, 2, 4, 5).contiguous().view(-1, window_size, window_size, C)
     return windows
 
@@ -236,8 +232,8 @@ class SwinTransformerBlock(nn.Module):
                     cnt += 1
 
             mask_windows = window_partition(img_mask, self.window_size)  # nW, window_size, window_size, 1
-            mask_windows = mask_windows.view(-1, self.window_size * self.window_size)
-            attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)
+            mask_windows = mask_windows.view(-1, self.window_size * self.window_size)  # nW, w_s * w_s
+            attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)  # nW w_s*w_s w_s*w_s
             attn_mask = attn_mask.masked_fill(attn_mask != 0, float(-100.0)).masked_fill(attn_mask == 0, float(0.0))
         else:
             attn_mask = None
@@ -347,7 +343,9 @@ class PatchMerging(nn.Module):
         x = x.view(B, -1, 4 * C)  # B H/2*W/2 4*C
 
         x = self.norm(x)
-        x = self.reduction(x)
+        x = self.reduc
+
+        tion(x)
 
         return x
 
@@ -458,7 +456,7 @@ class PatchEmbed(nn.Module):
         self.in_chans = in_chans
         self.embed_dim = embed_dim
 
-        self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)
+        self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)  # patchify 用一个大的卷积核心实现的
         if norm_layer is not None:
             self.norm = norm_layer(embed_dim)
         else:
@@ -469,6 +467,7 @@ class PatchEmbed(nn.Module):
         # FIXME look at relaxing size constraints
         assert H == self.img_size[0] and W == self.img_size[1], \
             f"Input image size ({H}*{W}) doesn't match model ({self.img_size[0]}*{self.img_size[1]})."
+        # b c h w -> b c Ph*Pw -> b Ph*Pw c
         x = self.proj(x).flatten(2).transpose(1, 2)  # B Ph*Pw C
         if self.norm is not None:
             x = self.norm(x)
